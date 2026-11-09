@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- kağıt -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M33,28 L69,28 Q73,28 73,32 L73,76 Q73,80 69,80 L33,80 Q29,80 29,76 L29,32 Q29,28 33,28 Z" />
+    <!-- çizgiler -->
+    <path
+        android:fillColor="#FFC5CFE6"
+        android:pathData="M35,40 L67,40 L67,42 L35,42 Z M35,50 L67,50 L67,52 L35,52 Z M35,60 L55,60 L55,62 L35,62 Z" />
+    <!-- kalem -->
+    <path
+        android:fillColor="#FFFFA726"
+        android:pathData="M84,36 L90,42 L62,72 L56,66 Z" />
+    <path
+        android:fillColor="#FF5C6BC0"
+        android:pathData="M56,66 L62,72 L52,76 Z" />
+</vector>
