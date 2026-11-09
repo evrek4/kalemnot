@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+
 package com.kalemnot.app.ink
 
 import androidx.compose.foundation.gestures.awaitEachGesture
