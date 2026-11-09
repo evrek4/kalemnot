@@ -171,7 +171,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app), UiBridge {
         runBackup(u, false)
     }
 
-    fun setAutoBackup(v: Boolean) {
+    fun changeAutoBackup(v: Boolean) {
         autoBackup = v
         prefs.autoBackup = v
     }

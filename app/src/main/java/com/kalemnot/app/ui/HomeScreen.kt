@@ -421,7 +421,7 @@ fun HomeScreen(
                         Box(Modifier.width(8.dp))
                         Switch(
                             checked = vm.autoBackup && vm.hasBackupTarget,
-                            onCheckedChange = { vm.setAutoBackup(it) },
+                            onCheckedChange = { vm.changeAutoBackup(it) },
                             enabled = vm.hasBackupTarget,
                         )
                     }
