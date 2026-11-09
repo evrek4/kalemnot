@@ -23,7 +23,16 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: İmza anahtarını hazırla
+        env:
+          KS_B64: ${{ secrets.KS_B64 }}
+        run: |
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/kalemnot.keystore"
+          echo "KS_PATH=$RUNNER_TEMP/kalemnot.keystore" >> "$GITHUB_ENV"
+
       - name: APK derle
+        env:
+          KS_PASS: ${{ secrets.KS_PASS }}
         run: gradle --no-daemon assembleRelease
 
       - name: APK adını düzenle

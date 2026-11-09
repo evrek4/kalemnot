@@ -16,13 +16,18 @@ android {
         versionName = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
 
-    // Sabit anahtar: her derleme aynı imzayla çıkar, böylece yeni sürüm eskisinin üstüne kurulur.
-    signingConfigs {
-        create("kalemnot") {
-            storeFile = file("kalemnot.keystore")
-            storePassword = "kalemnot123"
-            keyAlias = "kalemnot"
-            keyPassword = "kalemnot123"
+    // Sabit anahtar: CI'da GitHub Secrets'tan gelir (KS_PATH, KS_PASS); her derleme aynı imzayla çıkar.
+    val ksPath: String? = System.getenv("KS_PATH")
+    val ksPass: String? = System.getenv("KS_PASS")
+    val hasKey = ksPath != null && ksPass != null
+    if (hasKey) {
+        signingConfigs {
+            create("kalemnot") {
+                storeFile = file(ksPath!!)
+                storePassword = ksPass
+                keyAlias = "kalemnot"
+                keyPassword = ksPass
+            }
         }
     }
 
@@ -31,10 +36,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("kalemnot")
+            if (hasKey) signingConfig = signingConfigs.getByName("kalemnot")
         }
         debug {
-            signingConfig = signingConfigs.getByName("kalemnot")
+            if (hasKey) signingConfig = signingConfigs.getByName("kalemnot")
         }
     }
 
