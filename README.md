@@ -22,3 +22,9 @@ Yerelde: Android Studio ile aç ve çalıştır (JDK 17).
 ## Yedekleme nasıl çalışır?
 Uygulama Google Drive API'si yerine Android'in dosya seçicisini kullanır; bu yüzden anahtar/hesap ayarı gerekmez.
 Yedekle → "Yeni yedek dosyası oluştur" → açılan pencerede **Drive**'ı seç. Sonraki yedeklemeler aynı dosyanın üstüne yazılır.
+
+## Google Drive eşitleme
+
+Uygulama Drive API (`drive.file` kapsamı) ile notları Drive'daki `KalemNot` klasörüne eşitler.
+Yedekle menüsü → "Google Drive'a bağlan". Google Cloud tarafında Android OAuth istemcisi
+(paket `com.kalemnot.app` + imza SHA-1) gerekir; uygulama "Test" modundayken yalnızca eklenen test kullanıcıları girebilir.

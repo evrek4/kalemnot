@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -55,6 +56,22 @@ fun AppRoot(vm: AppViewModel, activity: ComponentActivity) {
     }
     val restore = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.restoreFrom(uri)
+    }
+
+    val driveConsent = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { res ->
+        if (res.resultCode == android.app.Activity.RESULT_OK) vm.syncDrive(true)
+        else vm.message("Drive izni verilmedi")
+    }
+    val pending = vm.pendingConsent
+    LaunchedEffect(pending) {
+        if (pending != null) {
+            vm.consentHandled()
+            try {
+                driveConsent.launch(IntentSenderRequest.Builder(pending.intentSender).build())
+            } catch (e: Exception) {
+                vm.message("İzin ekranı açılamadı")
+            }
+        }
     }
 
     BackHandler(enabled = vm.editor != null) { vm.closeEditor() }

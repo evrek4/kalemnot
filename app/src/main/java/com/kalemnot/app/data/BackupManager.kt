@@ -30,6 +30,20 @@ object BackupManager {
         return count
     }
 
+    /** Tek bir notu zip olarak yazar (Drive eşitlemesi için). */
+    fun writeNote(root: File, id: String, out: OutputStream) {
+        val d = File(root, id)
+        ZipOutputStream(BufferedOutputStream(out)).use { zip ->
+            for (f in d.walkTopDown()) {
+                if (!f.isFile || f.name == "thumb.png" || f.name.endsWith(".tmp")) continue
+                val rel = d.name + "/" + f.relativeTo(d).path.replace(File.separatorChar, '/')
+                zip.putNextEntry(ZipEntry(rel))
+                f.inputStream().use { it.copyTo(zip) }
+                zip.closeEntry()
+            }
+        }
+    }
+
     /** Yüklenen not kimliklerini döndürür. */
     fun restore(input: InputStream, root: File): List<String> {
         val ids = LinkedHashSet<String>()

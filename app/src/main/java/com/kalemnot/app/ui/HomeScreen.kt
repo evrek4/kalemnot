@@ -412,6 +412,34 @@ fun HomeScreen(
                         onClick = { backupDlg = false; onRestore() },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Yedekten geri yükle") }
+                    HorizontalDivider()
+                    Text("Google Drive (doğrudan eşitleme)", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        if (vm.lastSync > 0L) "Son eşitleme: " + dateTimeFmt.format(Date(vm.lastSync))
+                        else "Notların Drive'da \"KalemNot\" klasörüne eşitlenir.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(
+                        onClick = { backupDlg = false; vm.syncDrive(true) },
+                        enabled = !vm.syncing,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (vm.driveConnected) "Şimdi eşitle" else "Google Drive'a bağlan") }
+                    if (vm.driveConnected) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Uygulamadan çıkarken otomatik eşitle",
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            Box(Modifier.width(8.dp))
+                            Switch(checked = vm.driveAuto, onCheckedChange = { vm.changeDriveAuto(it) })
+                        }
+                        TextButton(onClick = { backupDlg = false; vm.disconnectDrive() }) {
+                            Text("Bağlantıyı kapat")
+                        }
+                    }
+                    HorizontalDivider()
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "Uygulamadan çıkarken otomatik yedekle",

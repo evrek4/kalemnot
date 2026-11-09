@@ -10,7 +10,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.kalemnot.app.data.AuthResult
 import com.kalemnot.app.data.BackupManager
+import com.kalemnot.app.data.DriveAuth
+import com.kalemnot.app.data.DriveClient
 import com.kalemnot.app.data.Note
 import com.kalemnot.app.data.NoteRepository
 import com.kalemnot.app.data.NoteSummary
@@ -19,10 +22,12 @@ import com.kalemnot.app.data.Prefs
 import com.kalemnot.app.data.Template
 import com.kalemnot.app.ink.EditorState
 import com.kalemnot.app.ink.UiBridge
+import android.app.PendingIntent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.OutputStream
 
 class AppViewModel(app: Application) : AndroidViewModel(app), UiBridge {
@@ -37,6 +42,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app), UiBridge {
     var lastBackup by mutableLongStateOf(prefs.lastBackup)
     var hasBackupTarget by mutableStateOf(prefs.backupUri != null)
     var autoBackup by mutableStateOf(prefs.autoBackup)
+
+    var driveConnected by mutableStateOf(prefs.driveConnected)
+    var driveAuto by mutableStateOf(prefs.driveAuto)
+    var lastSync by mutableLongStateOf(prefs.lastSync)
+    var syncing by mutableStateOf(false)
+    var pendingConsent by mutableStateOf<PendingIntent?>(null)
 
     init {
         refresh()
@@ -89,6 +100,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app), UiBridge {
     fun deleteNote(id: String) {
         viewModelScope.launch {
             withContext(repo.io) { repo.delete(id) }
+            if (prefs.driveConnected) prefs.deletedNotes = prefs.deletedNotes + id
             refresh()
         }
     }
@@ -243,6 +255,123 @@ class AppViewModel(app: Application) : AndroidViewModel(app), UiBridge {
         if (prefs.autoBackup) {
             val u = prefs.backupUri?.let { Uri.parse(it) }
             if (u != null && prefs.lastChange > prefs.lastBackup) runBackup(u, true)
+        }
+        if (prefs.driveConnected && prefs.driveAuto && prefs.lastChange > prefs.lastSync) syncDrive(false)
+    }
+
+    // ---------- Google Drive ----------
+
+    fun changeDriveAuto(v: Boolean) {
+        prefs.driveAuto = v
+        driveAuto = v
+    }
+
+    fun disconnectDrive() {
+        prefs.driveConnected = false
+        prefs.driveAuto = false
+        driveConnected = false
+        driveAuto = false
+        message("Drive bağlantısı kapatıldı")
+    }
+
+    fun consentHandled() {
+        pendingConsent = null
+    }
+
+    /** Drive eşitlemesini başlatır. interactive=true ise gerekirse izin ekranı açılır. */
+    fun syncDrive(interactive: Boolean) {
+        if (syncing) return
+        syncing = true
+        viewModelScope.launch {
+            try {
+                editor?.flush()
+                val auth = DriveAuth.authorize(getApplication())
+                when (auth) {
+                    is AuthResult.NeedsConsent -> {
+                        if (interactive) pendingConsent = auth.pending
+                    }
+                    is AuthResult.Failed -> {
+                        if (interactive) message("Google hesabına bağlanılamadı")
+                    }
+                    is AuthResult.Token -> {
+                        if (interactive) busy("Drive ile eşitleniyor…")
+                        val r = try {
+                            withContext(repo.io) { doSync(DriveClient(auth.token)) }
+                        } catch (e: Exception) {
+                            null
+                        } finally {
+                            if (interactive) busy(null)
+                        }
+                        if (r == null) {
+                            if (interactive) message("Eşitleme başarısız (ağ/izin hatası)")
+                        } else {
+                            prefs.driveConnected = true
+                            driveConnected = true
+                            val now = System.currentTimeMillis()
+                            prefs.lastSync = now
+                            lastSync = now
+                            refresh()
+                            if (interactive || r.second > 0) {
+                                message("Eşitlendi: ${r.first} yüklendi, ${r.second} indirildi")
+                            }
+                        }
+                    }
+                }
+            } finally {
+                syncing = false
+            }
+        }
+    }
+
+    /** Döner: (yüklenen, indirilen). Arka plan iş parçacığında çalışır. */
+    private fun doSync(api: DriveClient): Pair<Int, Int> {
+        val cache = getApplication<Application>().cacheDir
+        val folder = api.findFolder() ?: api.createFolder()
+        val remote = api.list(folder).associateBy { it.noteId }.toMutableMap()
+        var up = 0
+        var down = 0
+
+        // Yerelde silinenleri Drive'dan da sil
+        val deleted = prefs.deletedNotes
+        for (id in deleted) {
+            val r = remote.remove(id)
+            if (r != null) api.delete(r.id)
+        }
+        prefs.deletedNotes = emptySet()
+
+        val local = repo.listSummaries()
+        val localIds = local.map { it.id }.toSet()
+
+        for (n in local) {
+            val r = remote[n.id]
+            if (r == null || n.updatedAt > r.noteUpdated) {
+                val tmp = File(cache, "up_${n.id}.zip")
+                try {
+                    tmp.outputStream().use { BackupManager.writeNote(repo.root, n.id, it) }
+                    api.uploadNote(folder, r?.id, "${n.id}.zip", n.id, n.updatedAt, tmp)
+                    up++
+                } finally {
+                    tmp.delete()
+                }
+            } else if (r.noteUpdated > n.updatedAt) {
+                down += fetch(api, r)
+            }
+        }
+        for ((id, r) in remote) {
+            if (id !in localIds) down += fetch(api, r)
+        }
+        return Pair(up, down)
+    }
+
+    private fun fetch(api: DriveClient, r: DriveClient.Remote): Int {
+        val cache = getApplication<Application>().cacheDir
+        val tmp = File(cache, "down_${r.noteId}.zip")
+        return try {
+            api.download(r.id, tmp)
+            val ids = tmp.inputStream().use { BackupManager.restore(it, repo.root) }
+            if (ids.isEmpty()) 0 else 1
+        } finally {
+            tmp.delete()
         }
     }
 }

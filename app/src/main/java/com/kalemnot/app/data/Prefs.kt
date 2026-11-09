@@ -40,4 +40,21 @@ class Prefs(ctx: Context) {
     var lastChange: Long
         get() = sp.getLong("lastChange", 0L)
         set(v) { sp.edit().putLong("lastChange", v).apply() }
+
+    var driveConnected: Boolean
+        get() = sp.getBoolean("driveConnected", false)
+        set(v) { sp.edit().putBoolean("driveConnected", v).apply() }
+
+    var driveAuto: Boolean
+        get() = sp.getBoolean("driveAuto", false)
+        set(v) { sp.edit().putBoolean("driveAuto", v).apply() }
+
+    var lastSync: Long
+        get() = sp.getLong("lastSync", 0L)
+        set(v) { sp.edit().putLong("lastSync", v).apply() }
+
+    /** Yerelde silinip Drive'dan da silinmesi beklenen not kimlikleri. */
+    var deletedNotes: Set<String>
+        get() = sp.getStringSet("deletedNotes", emptySet())?.toSet() ?: emptySet()
+        set(v) { sp.edit().putStringSet("deletedNotes", HashSet(v)).apply() }
 }
