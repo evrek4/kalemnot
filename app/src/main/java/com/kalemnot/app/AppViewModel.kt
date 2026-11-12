@@ -151,7 +151,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app), UiBridge {
         val n = withContext(repo.io) { repo.createFromUris(uris) }
         busy(null)
         if (n == null) {
-            message("Desteklenen dosya bulunamadı (PDF veya görsel olmalı)")
+            message("Desteklenen dosya bulunamadı (PDF, görsel, Word, Excel, PowerPoint veya EPUB olmalı)")
         } else {
             openLoaded(n)
             refresh()

@@ -618,7 +618,7 @@ class EditorState(
             val pages = withContext(repo.io) { repo.importPages(note.id, uris) }
             ui.busy(null)
             if (pages.isEmpty()) {
-                ui.message("Desteklenen dosya bulunamadı (PDF veya görsel olmalı)")
+                ui.message("Desteklenen dosya bulunamadı (PDF, görsel, Word, Excel, PowerPoint veya EPUB olmalı)")
                 return@launch
             }
             val at = (currentPage + 1).coerceIn(0, note.pages.size)

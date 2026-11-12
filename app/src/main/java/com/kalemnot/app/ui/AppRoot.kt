@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.kalemnot.app.AppViewModel
+import com.kalemnot.app.data.DocConverter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -104,7 +105,7 @@ fun AppRoot(vm: AppViewModel, activity: ComponentActivity) {
             .dragAndDropTarget(
                 shouldStartDragAndDrop = { event ->
                     event.mimeTypes().any {
-                        it == "application/pdf" || it.startsWith("image/") ||
+                        it == "application/pdf" || it.startsWith("image/") || it in DocConverter.MIMES ||
                             it == "text/uri-list" || it == "application/octet-stream"
                     }
                 },
@@ -115,7 +116,7 @@ fun AppRoot(vm: AppViewModel, activity: ComponentActivity) {
         if (ed == null) {
             HomeScreen(
                 vm = vm,
-                onPickImport = { pickImport.launch(arrayOf("application/pdf", "image/*")) },
+                onPickImport = { pickImport.launch(arrayOf("application/pdf", "image/*", *DocConverter.MIMES)) },
                 onCreateBackup = {
                     val stamp = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
                     createBackup.launch("KalemNot-yedek-$stamp.zip")
@@ -126,7 +127,7 @@ fun AppRoot(vm: AppViewModel, activity: ComponentActivity) {
             EditorScreen(
                 vm = vm,
                 st = ed,
-                onPickImport = { pickImport.launch(arrayOf("application/pdf", "image/*")) },
+                onPickImport = { pickImport.launch(arrayOf("application/pdf", "image/*", *DocConverter.MIMES)) },
             )
         }
 

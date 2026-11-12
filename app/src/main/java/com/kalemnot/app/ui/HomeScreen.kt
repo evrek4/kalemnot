@@ -172,7 +172,7 @@ fun HomeScreen(
                     )
                     HorizontalDivider()
                     DropdownMenuItem(
-                        text = { Text("PDF veya görsel aç…") },
+                        text = { Text("Belge veya görsel aç…") },
                         leadingIcon = { Icon(Icons.Filled.PictureAsPdf, null) },
                         onClick = { newMenu = false; onPickImport() },
                     )

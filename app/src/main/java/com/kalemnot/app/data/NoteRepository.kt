@@ -300,21 +300,42 @@ class NoteRepository(private val context: Context) {
             val isImg = mime.startsWith("image/") ||
                 lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png") ||
                 lower.endsWith(".webp") || lower.endsWith(".heic") || lower.endsWith(".bmp")
-            if (!isPdf && !isImg) continue
-            val ext = if (isPdf) "pdf" else {
+            val docKind = DocConverter.kindOf(mime, lower)
+            if (!isPdf && !isImg && docKind == null) continue
+            val asPdf = isPdf || docKind != null
+            val ext = if (asPdf) "pdf" else {
                 val e = lower.substringAfterLast('.', "jpg").filter { it.isLetterOrDigit() }.take(5)
                 if (e.isEmpty()) "jpg" else e
             }
             val fileName = "src_${newId()}.$ext"
             val dest = File(d, fileName)
-            try {
-                val input = context.contentResolver.openInputStream(u) ?: continue
-                input.use { ins -> dest.outputStream().use { ins.copyTo(it) } }
-            } catch (e: Exception) {
-                dest.delete()
-                continue
+            if (docKind != null) {
+                val tmp = File(context.cacheDir, "conv_${newId()}")
+                val ok = try {
+                    val input = context.contentResolver.openInputStream(u)
+                    if (input == null) false else {
+                        input.use { ins -> tmp.outputStream().use { ins.copyTo(it) } }
+                        DocConverter.convert(context, tmp, docKind, dest)
+                    }
+                } catch (e: Throwable) {
+                    false
+                } finally {
+                    tmp.delete()
+                }
+                if (!ok) {
+                    dest.delete()
+                    continue
+                }
+            } else {
+                try {
+                    val input = context.contentResolver.openInputStream(u) ?: continue
+                    input.use { ins -> dest.outputStream().use { ins.copyTo(it) } }
+                } catch (e: Exception) {
+                    dest.delete()
+                    continue
+                }
             }
-            if (isPdf) {
+            if (asPdf) {
                 try {
                     val fd = ParcelFileDescriptor.open(dest, ParcelFileDescriptor.MODE_READ_ONLY)
                     val r = PdfRenderer(fd)
@@ -339,7 +360,7 @@ class NoteRepository(private val context: Context) {
                 if (size == null) {
                     dest.delete()
                 } else {
-                    val ph = (PAGE_W * size.second / size.first).coerceIn(300f, 3000f)
+                    val ph = (PAGE_W * size.second / size.first).coerceIn(PAGE_H, 6000f)
                     pages.add(Page(newId(), Template.BLANK, fileName, -1, PAGE_W, ph))
                 }
             }

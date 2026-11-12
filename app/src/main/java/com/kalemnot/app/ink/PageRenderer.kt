@@ -34,7 +34,12 @@ class PageRenderer {
         if (shadow) c.drawRect(3f, 4f, w + 3f, h + 4f, shadowPaint)
         c.drawRect(0f, 0f, w, h, paperPaint)
         if (bg != null) {
-            dst.set(0f, 0f, w, h)
+            if (page.pdfIndex < 0) {
+                // görsel: oranı koru, sayfanın üstüne yerleştir; altı yazı için boş kalır
+                dst.set(0f, 0f, w, w * bg.height / bg.width)
+            } else {
+                dst.set(0f, 0f, w, h)
+            }
             c.drawBitmap(bg, null, dst, bmpPaint)
         } else if (page.src == null) {
             drawTemplate(c, page)
