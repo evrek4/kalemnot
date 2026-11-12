@@ -9,6 +9,16 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean("fingerDraws", true)
         set(v) { sp.edit().putBoolean("fingerDraws", v).apply() }
 
+    /** Parmakla çizerken çizginin parmağa göre konumu: 0 altında, 1 yukarı, 2 yukarı-sol, 3 yukarı-sağ. */
+    var fingerOffDir: Int
+        get() = sp.getInt("fingerOffDir", 1)
+        set(v) { sp.edit().putInt("fingerOffDir", v).apply() }
+
+    /** Uzaklık: 0 yakın, 1 orta, 2 uzak. */
+    var fingerOffDist: Int
+        get() = sp.getInt("fingerOffDist", 1)
+        set(v) { sp.edit().putInt("fingerOffDist", v).apply() }
+
     var stylusAutoSet: Boolean
         get() = sp.getBoolean("stylusAutoSet", false)
         set(v) { sp.edit().putBoolean("stylusAutoSet", v).apply() }

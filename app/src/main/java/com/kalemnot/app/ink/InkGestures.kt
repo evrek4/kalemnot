@@ -34,7 +34,17 @@ suspend fun PointerInputScope.inkGestures(s: EditorState) {
         val tool = if (type == PointerType.Eraser) ToolType.ERASER else s.tool
         val wantsDraw = isPen || type == PointerType.Mouse || (type == PointerType.Touch && s.fingerDraws)
         // Parmakla çizerken çizgi parmağın biraz yukarısında çıkar; böylece çizilen yer parmağın altında kalmaz.
-        val off = if (type == PointerType.Touch) 44.dp.toPx() else 0f
+        val dist = when (s.offsetDist) {
+            0 -> 28.dp.toPx()
+            1 -> 44.dp.toPx()
+            else -> 64.dp.toPx()
+        }
+        val off: Offset = if (type != PointerType.Touch) Offset.Zero else when (s.offsetDir) {
+            1 -> Offset(0f, -dist)
+            2 -> Offset(-dist * 0.7f, -dist * 0.7f)
+            3 -> Offset(dist * 0.7f, -dist * 0.7f)
+            else -> Offset.Zero
+        }
 
         if (type == PointerType.Touch) {
             when (touchPrelude(s, down)) {
@@ -93,7 +103,7 @@ private suspend fun AwaitPointerEventScope.touchPrelude(s: EditorState, down: Po
 }
 
 /** Kısa parmak dokunuşu: çift dokunuş kalem modunu açar/kapatır; tek dokunuş araca göre nokta/silme/metin yapar. */
-private fun handleTouchTap(s: EditorState, down: PointerInputChange, wantsDraw: Boolean, tool: ToolType, off: Float) {
+private fun handleTouchTap(s: EditorState, down: PointerInputChange, wantsDraw: Boolean, tool: ToolType, off: Offset) {
     val now = down.uptimeMillis
     if (tool != ToolType.TEXT) {
         if (s.lastTapUp > 0L && now - s.lastTapUp < 350L && (down.position - s.lastTapPos).getDistance() < 120f) {
@@ -108,7 +118,7 @@ private fun handleTouchTap(s: EditorState, down: PointerInputChange, wantsDraw: 
         s.lastTapUp = 0L
     }
     if (!wantsDraw) return
-    val pos = Offset(down.position.x, down.position.y - off)
+    val pos = down.position + off
     when (tool) {
         ToolType.PEN, ToolType.HIGHLIGHTER -> {
             if (s.beginStroke(pos, 0.6f)) s.endStroke()
@@ -155,13 +165,13 @@ private suspend fun AwaitPointerEventScope.transformLoop(s: EditorState, first: 
 
 private fun PointerInputChange.positionChanged(): Boolean = positionChange() != Offset.Zero
 
-private suspend fun AwaitPointerEventScope.drawLoop(s: EditorState, down: PointerInputChange, isPen: Boolean, off: Float) {
-    fun fp(p: Offset) = Offset(p.x, p.y - off)
+private suspend fun AwaitPointerEventScope.drawLoop(s: EditorState, down: PointerInputChange, isPen: Boolean, off: Offset) {
+    fun fp(p: Offset) = p + off
     var lastP = pressureOf(down, isPen)
     if (!s.beginStroke(fp(down.position), lastP)) return
     down.consume()
     try {
-        if (off > 0f) s.penCursor = fp(down.position)
+        if (off != Offset.Zero) s.penCursor = fp(down.position)
         while (true) {
             val event = awaitPointerEvent()
             if (!isPen && event.changes.count { it.pressed } > 1) {
@@ -178,7 +188,7 @@ private suspend fun AwaitPointerEventScope.drawLoop(s: EditorState, down: Pointe
                 for (h in ch.historical) s.addPoint(fp(h.position), lastP)
                 lastP = lastP * 0.6f + pressureOf(ch, isPen) * 0.4f
                 s.addPoint(fp(ch.position), lastP)
-                if (off > 0f) s.penCursor = fp(ch.position)
+                if (off != Offset.Zero) s.penCursor = fp(ch.position)
                 ch.consume()
             } else {
                 ch.consume()
@@ -191,12 +201,12 @@ private suspend fun AwaitPointerEventScope.drawLoop(s: EditorState, down: Pointe
     }
 }
 
-private suspend fun AwaitPointerEventScope.eraseLoop(s: EditorState, down: PointerInputChange, isPen: Boolean, off: Float) {
-    fun fp(p: Offset) = Offset(p.x, p.y - off)
+private suspend fun AwaitPointerEventScope.eraseLoop(s: EditorState, down: PointerInputChange, isPen: Boolean, off: Offset) {
+    fun fp(p: Offset) = p + off
     s.eraseAt(fp(down.position))
     down.consume()
     try {
-        if (off > 0f) s.penCursor = fp(down.position)
+        if (off != Offset.Zero) s.penCursor = fp(down.position)
         while (true) {
             val event = awaitPointerEvent()
             if (!isPen && event.changes.count { it.pressed } > 1) {
@@ -210,7 +220,7 @@ private suspend fun AwaitPointerEventScope.eraseLoop(s: EditorState, down: Point
             if (ch.pressed) {
                 for (h in ch.historical) s.eraseAt(fp(h.position))
                 s.eraseAt(fp(ch.position))
-                if (off > 0f) s.penCursor = fp(ch.position)
+                if (off != Offset.Zero) s.penCursor = fp(ch.position)
                 ch.consume()
             } else {
                 ch.consume()

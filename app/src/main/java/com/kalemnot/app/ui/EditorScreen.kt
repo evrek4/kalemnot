@@ -53,6 +53,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -88,7 +89,7 @@ import com.kalemnot.app.data.ToolType
 import com.kalemnot.app.ink.EditorState
 import com.kalemnot.app.ink.inkGestures
 
-private enum class EDlg { NONE, RENAME, ADD_PAGE, GOTO, DELETE_PAGE, RECORDINGS, TEMPLATE }
+private enum class EDlg { NONE, RENAME, ADD_PAGE, GOTO, DELETE_PAGE, RECORDINGS, TEMPLATE, FINGER }
 
 private fun fmtDur(ms: Long): String {
     val s = ms / 1000
@@ -194,6 +195,10 @@ fun EditorScreen(vm: AppViewModel, st: EditorState, onPickImport: () -> Unit) {
                                 onClick = { menu = false; st.toggleFinger() },
                             )
                             DropdownMenuItem(
+                                text = { Text("Parmakla çizim konumu…") },
+                                onClick = { menu = false; dlg = EDlg.FINGER },
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Yeniden adlandır") },
                                 onClick = { menu = false; dlg = EDlg.RENAME },
                             )
@@ -267,6 +272,41 @@ fun EditorScreen(vm: AppViewModel, st: EditorState, onPickImport: () -> Unit) {
         }
         EDlg.ADD_PAGE -> TemplateDialog("Sayfa ekle", { dlg = EDlg.NONE }) { t -> st.addPage(t); dlg = EDlg.NONE }
         EDlg.TEMPLATE -> TemplateDialog("Sayfa şablonu", { dlg = EDlg.NONE }) { t -> st.setTemplate(t); dlg = EDlg.NONE }
+        EDlg.FINGER -> {
+            AlertDialog(
+                onDismissRequest = { dlg = EDlg.NONE },
+                title = { Text("Parmakla çizim konumu") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Çizgi parmağına göre nerede çıksın?", style = MaterialTheme.typography.bodyMedium)
+                        val dirs = listOf("Parmağın altında (kayma yok)", "Yukarıda", "Yukarı sol", "Yukarı sağ")
+                        for (i in dirs.indices) {
+                            Row(
+                                Modifier.fillMaxWidth().clickable { st.setOffsetDir(i) },
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(selected = st.offsetDir == i, onClick = { st.setOffsetDir(i) })
+                                Text(dirs[i])
+                            }
+                        }
+                        Text("Uzaklık", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+                        val dists = listOf("Yakın", "Orta", "Uzak")
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            for (i in dists.indices) {
+                                Row(
+                                    Modifier.clickable { st.setOffsetDist(i) },
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    RadioButton(selected = st.offsetDist == i, onClick = { st.setOffsetDist(i) })
+                                    Text(dists[i])
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { dlg = EDlg.NONE }) { Text("Tamam") } },
+            )
+        }
         EDlg.GOTO -> {
             AlertDialog(
                 onDismissRequest = { dlg = EDlg.NONE },
@@ -451,19 +491,19 @@ fun InkCanvas(st: EditorState, modifier: Modifier) {
             c.restore()
         }
         val tip = st.penCursor
-        if (tip != null) drawPenCursor(tip, st.tool == com.kalemnot.app.data.ToolType.ERASER, if (st.tool == com.kalemnot.app.data.ToolType.HIGHLIGHTER) st.hlColor else st.penColor)
+        if (tip != null) drawPenCursor(tip, st.offsetDir == 2, st.tool == com.kalemnot.app.data.ToolType.ERASER, if (st.tool == com.kalemnot.app.data.ToolType.HIGHLIGHTER) st.hlColor else st.penColor)
     }
 }
 
 /** Parmakla çizerken: ucu çizim noktasında olan, yukarı-sağa uzanan kalem imleci. */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPenCursor(tip: androidx.compose.ui.geometry.Offset, eraser: Boolean, argb: Int) {
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPenCursor(tip: androidx.compose.ui.geometry.Offset, left: Boolean, eraser: Boolean, argb: Int) {
     val u = this.density
     if (eraser) {
         drawCircle(Color(0x22000000), 16f * u, tip)
         drawCircle(Color(0xFF444444), 16f * u, tip, style = androidx.compose.ui.graphics.drawscope.Stroke(2f * u))
         return
     }
-    val a = Math.toRadians(-62.0)
+    val a = Math.toRadians(if (left) -118.0 else -62.0)
     val dx = Math.cos(a).toFloat()
     val dy = Math.sin(a).toFloat()
     val nx = -dy

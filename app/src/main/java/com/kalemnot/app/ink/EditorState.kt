@@ -268,6 +268,19 @@ class EditorState(
         prefs.sizeIdx = i
     }
 
+    var offsetDir by mutableIntStateOf(prefs.fingerOffDir)
+    var offsetDist by mutableIntStateOf(prefs.fingerOffDist)
+
+    fun setOffsetDir(v: Int) {
+        offsetDir = v
+        prefs.fingerOffDir = v
+    }
+
+    fun setOffsetDist(v: Int) {
+        offsetDist = v
+        prefs.fingerOffDist = v
+    }
+
     // Çift dokunuşla kalem modu
     var lastTapUp = 0L
     var lastTapPos = Offset.Zero
