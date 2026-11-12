@@ -271,12 +271,12 @@ class EditorState(
     var offsetDir by mutableIntStateOf(prefs.fingerOffDir)
     var offsetDist by mutableIntStateOf(prefs.fingerOffDist)
 
-    fun setOffsetDir(v: Int) {
+    fun chooseOffsetDir(v: Int) {
         offsetDir = v
         prefs.fingerOffDir = v
     }
 
-    fun setOffsetDist(v: Int) {
+    fun chooseOffsetDist(v: Int) {
         offsetDist = v
         prefs.fingerOffDist = v
     }

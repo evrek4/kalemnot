@@ -282,10 +282,10 @@ fun EditorScreen(vm: AppViewModel, st: EditorState, onPickImport: () -> Unit) {
                         val dirs = listOf("Parmağın altında (kayma yok)", "Yukarıda", "Yukarı sol", "Yukarı sağ")
                         for (i in dirs.indices) {
                             Row(
-                                Modifier.fillMaxWidth().clickable { st.setOffsetDir(i) },
+                                Modifier.fillMaxWidth().clickable { st.chooseOffsetDir(i) },
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                RadioButton(selected = st.offsetDir == i, onClick = { st.setOffsetDir(i) })
+                                RadioButton(selected = st.offsetDir == i, onClick = { st.chooseOffsetDir(i) })
                                 Text(dirs[i])
                             }
                         }
@@ -294,10 +294,10 @@ fun EditorScreen(vm: AppViewModel, st: EditorState, onPickImport: () -> Unit) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             for (i in dists.indices) {
                                 Row(
-                                    Modifier.clickable { st.setOffsetDist(i) },
+                                    Modifier.clickable { st.chooseOffsetDist(i) },
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    RadioButton(selected = st.offsetDist == i, onClick = { st.setOffsetDist(i) })
+                                    RadioButton(selected = st.offsetDist == i, onClick = { st.chooseOffsetDist(i) })
                                     Text(dists[i])
                                 }
                             }
