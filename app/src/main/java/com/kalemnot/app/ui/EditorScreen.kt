@@ -450,7 +450,47 @@ fun InkCanvas(st: EditorState, modifier: Modifier) {
             }
             c.restore()
         }
+        val tip = st.penCursor
+        if (tip != null) drawPenCursor(tip, st.tool == com.kalemnot.app.data.ToolType.ERASER, if (st.tool == com.kalemnot.app.data.ToolType.HIGHLIGHTER) st.hlColor else st.penColor)
     }
+}
+
+/** Parmakla çizerken: ucu çizim noktasında olan, yukarı-sağa uzanan kalem imleci. */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPenCursor(tip: androidx.compose.ui.geometry.Offset, eraser: Boolean, argb: Int) {
+    val u = this.density
+    if (eraser) {
+        drawCircle(Color(0x22000000), 16f * u, tip)
+        drawCircle(Color(0xFF444444), 16f * u, tip, style = androidx.compose.ui.graphics.drawscope.Stroke(2f * u))
+        return
+    }
+    val a = Math.toRadians(-62.0)
+    val dx = Math.cos(a).toFloat()
+    val dy = Math.sin(a).toFloat()
+    val nx = -dy
+    val ny = dx
+    val coneLen = 16f * u
+    val bodyLen = 62f * u
+    val half = 6f * u
+    fun pt(along: Float, side: Float) =
+        androidx.compose.ui.geometry.Offset(tip.x + dx * along + nx * side, tip.y + dy * along + ny * side)
+    val body = androidx.compose.ui.graphics.Path().apply {
+        val p1 = pt(coneLen, -half)
+        val p2 = pt(bodyLen, -half)
+        val p3 = pt(bodyLen, half)
+        val p4 = pt(coneLen, half)
+        moveTo(p1.x, p1.y); lineTo(p2.x, p2.y); lineTo(p3.x, p3.y); lineTo(p4.x, p4.y); close()
+    }
+    val cone = androidx.compose.ui.graphics.Path().apply {
+        val p1 = pt(coneLen, -half)
+        val p4 = pt(coneLen, half)
+        moveTo(tip.x, tip.y); lineTo(p1.x, p1.y); lineTo(p4.x, p4.y); close()
+    }
+    drawPath(body, Color(argb or 0xFF000000.toInt()))
+    drawPath(cone, Color(0xFFE8D3B0))
+    val line = androidx.compose.ui.graphics.drawscope.Stroke(1.2f * u)
+    drawPath(body, Color(0xAA000000), style = line)
+    drawPath(cone, Color(0xAA000000), style = line)
+    drawCircle(Color(0xFF222222), 2.2f * u, tip)
 }
 
 // =========================================================================

@@ -268,6 +268,25 @@ class EditorState(
         prefs.sizeIdx = i
     }
 
+    // Çift dokunuşla kalem modu
+    var lastTapUp = 0L
+    var lastTapPos = Offset.Zero
+    var penCursor by mutableStateOf<Offset?>(null)
+
+    fun toggleFingerByTap() {
+        toggleFinger()
+        ui.message(if (fingerDraws) "Kalem modu açık: parmakla çiz" else "Kalem modu kapalı: parmakla sayfayı kaydır")
+    }
+
+    /** Çift dokunuşun ilk dokunuşu çizim modunda nokta bıraktıysa onu geri alır. */
+    fun dropTapDot() {
+        val op = undoStack.lastOrNull() as? AddStrokeOp ?: return
+        if (op.stroke.n > 3) return
+        undo()
+        redoStack.clear()
+        syncFlags()
+    }
+
     fun toggleFinger() {
         fingerDraws = !fingerDraws
         prefs.fingerDraws = fingerDraws
